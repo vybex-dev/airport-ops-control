@@ -14,7 +14,7 @@
    - [Algorithmic Alert Rules Engine](#algorithmic-alert-rules-engine)
 4. [Feature Summary Mapped to Evaluation Criteria](#4-feature-summary-mapped-to-evaluation-criteria)
 5. [Deployment Guide (Vercel / Netlify)](#5-deployment-guide-vercel--netlify)
-6. [Lighthouse Report Analysis & High-Leverage Optimizations](#6-lighthouse-report-analysis--high-leverage-optimizations)
+6. [Performance Architecture](#6-performance-architecture)
 
 ---
 
@@ -36,7 +36,7 @@ npm run dev
 # 3. Type-check TypeScript codebase
 npx tsc -b
 
-# 4. Build for production (Code-split bundles)
+# 4. Build for production (code-split bundles)
 npm run build
 
 # 5. Preview production build locally
@@ -48,11 +48,11 @@ npm run preview
 ## 2. Technology Stack
 
 - **Framework & Core**: React 19, TypeScript 6.0, Vite 8.2
-- **State Management**: Zustand 5.0 (Global virtual clock store & persistent alert acknowledgment state)
+- **State Management**: Zustand 5.0 (global virtual clock store & persistent alert acknowledgment state)
 - **Styling & Design System**: Tailwind CSS v4 (CSS-first configuration with custom design tokens in `@theme`)
-- **Virtualization**: `@tanstack/react-virtual` v3 (Rendering 1,000+ FIDS rows, 2,800 baggage items, and 2,500 security logs at 60fps)
-- **Animation & Motion**: Framer Motion 12 (`prefers-reduced-motion` accessible numerical counters & status badge flips)
-- **Visualization**: Recharts 3.10 (Security throughput & queue latency area/bar charts with virtual "NOW" reference marker)
+- **Virtualization**: `@tanstack/react-virtual` v3 (rendering 1,000+ FIDS rows, 2,800 baggage items, and 2,500 security logs at 60fps)
+- **Animation & Motion**: A mix of Framer Motion 12 (for drawer/panel transitions, loaded on demand) and lightweight CSS keyframe animations (for high-frequency UI — KPI counters, status flips, live event ticker — kept dependency-free so they never block first paint), all respecting `prefers-reduced-motion`.
+- **Visualization**: Recharts 3.10 (security throughput & queue latency area/bar charts with virtual "NOW" reference marker)
 - **Iconography & Fonts**: Lucide React SVGs, Google Fonts (Inter display typography & IBM Plex Mono tabular numeric data face)
 
 ---
@@ -145,7 +145,9 @@ The engine continuously evaluates 5 core operational risk rules (`src/lib/sim/al
 - **Live Event Ticker Feed**: Real-time operational event feed streaming as virtual clock advances.
 
 ### 6. Code Quality & Performance (Weight: 10%)
-- **Code-Split Bundles**: Vite production build produces route-level lazy chunks (`React.lazy` + `Suspense`), isolating Recharts (`vendor-charts`), Framer Motion (`vendor-motion`), and parsed datasets (`parsed-data`).
+- **Fetch-Based Data Loading**: All 8 datasets are served as static JSON from `/public/data/`, split into critical (loaded immediately: flights, gate events, baggage, security, maintenance) and lazy (fetched on-demand: passengers, retail, staff) — nothing is bundled into JavaScript.
+- **Route-Level Code Splitting**: Every module (`OverviewModule`, `FlightsModule`, `SecurityModule`, etc.) is a separate `React.lazy()` chunk, so the initial bundle only contains the code the current route needs.
+- **Dependency-Aware Chunking**: Recharts and Framer Motion are only pulled into the bundles of the components that actually use them (e.g. `QueueThroughputChart`, `AlertsPanelDrawer`), so neither library loads until a user actually opens a drawer or a chart-bearing tab.
 - **List Virtualization**: `@tanstack/react-virtual` renders 1,000+ flight rows, 2,800 baggage rows, and 2,500 security logs at 60fps with zero DOM lag.
 
 ---
@@ -183,17 +185,14 @@ The engine continuously evaluates 5 core operational risk rules (`src/lib/sim/al
 
 ---
 
-## 6. Lighthouse Report Analysis & High-Leverage Optimizations
+## 6. Performance Architecture
 
-### Expected Category Scores (Production Build)
-- **Accessibility**: **98 - 100** (Full ARIA semantics, WCAG AA contrast ratios, form labels, keyboard navigation, focus rings).
-- **Best Practices**: **95 - 100** (Clean HTTPS, semantic HTML5, no deprecated APIs).
-- **SEO**: **100** (Meta description, viewport tag, title tag, semantic structure).
-- **Performance**: **85 - 92** (High initial dataset bundle size due to pre-parsing 11,827 CSV records into static TypeScript structures).
+The app is built around a simple rule: **nothing loads until something on screen actually needs it.**
 
-### Why Performance is ~88-92 & The Single Highest-Leverage Remaining Fix
-- **Current Architecture**: To guarantee 60fps smooth simulation without client-side CSV parsing CPU spikes during interaction, all 8 datasets were pre-parsed into a dedicated `parsed-data` bundle chunk (`~5.3 MB` raw, `733 KB` gzipped).
-- **Impact on Core Web Vitals**: While LCP and INP are fast, the initial JavaScript execution time to evaluate `parsed-data.js` adds a slight main-thread block on slower mobile CPUs.
-- **Single Highest-Leverage Remaining Fix**: Implement **Web Worker IndexedDB Streaming / Lazy Chunk Loading**:
-  - Move the pre-parsed dataset into IndexedDB or chunked JSON files fetched asynchronously on-demand or inside a dedicated Web Worker thread.
-  - This would reduce the initial main JS payload from `733 KB` gzip to `< 100 KB` gzip, boosting the Lighthouse Performance score to **98 - 100**.
+- **Data**: The 8 operational datasets are fetched as static JSON rather than bundled into the JS payload, and split into a critical set (needed for the Overview screen) and a lazy set (fetched only when their module mounts).
+- **Routes**: Every top-level module is behind `React.lazy()`, so visiting `/` never downloads the code for `/security`, `/gates`, `/staff`, and so on.
+- **Heavy dependencies**: Recharts (charts) and Framer Motion (drawer/panel transitions) are scoped to the specific components that use them rather than force-bundled into a shared vendor chunk, so they load only when a user opens something that actually needs them — a chart tab, an alerts drawer, a mobile nav panel.
+- **High-frequency UI**: Elements that re-render often as the simulation clock ticks (KPI counters, status badges, the live event feed) use plain CSS keyframe animations instead of a JS animation library, so the parts of the UI that update most often are also the cheapest to update.
+- **Accessibility-safe motion**: All animation, whether CSS or Framer Motion, respects `prefers-reduced-motion` globally.
+
+Run `npm run build` to see the current chunk breakdown, or `npx vite-bundle-visualizer` for an interactive treemap of exactly what's in each bundle.
