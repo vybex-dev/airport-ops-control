@@ -3,7 +3,6 @@ import { Outlet } from "react-router-dom";
 import { TopStatusBar } from "./TopStatusBar";
 import { PrimaryNav } from "./PrimaryNav";
 import { SimDebugPanel } from "../sim/SimDebugPanel";
-import { AlertsPanelDrawer } from "../alerts/AlertsPanelDrawer";
 import { GlobalFlightDrawer } from "../common/GlobalFlightDrawer";
 import { ShieldCheck, Activity, Terminal } from "lucide-react";
 
@@ -11,6 +10,17 @@ import { ShieldCheck, Activity, Terminal } from "lucide-react";
 // framer-motion (vendor-motion) chunk off the initial render's critical path.
 const MobileNavDrawer = lazy(() =>
   import("./MobileNavDrawer").then((m) => ({ default: m.MobileNavDrawer })),
+);
+
+// AlertsPanelDrawer imports framer-motion directly and was previously
+// mounted unconditionally here on every route, which pulled the entire
+// vendor-motion chunk into the initial bundle regardless of whether the
+// drawer was ever opened. Lazy-loading it (same pattern as MobileNavDrawer
+// and GlobalFlightDrawer below) keeps framer-motion out of first paint.
+const AlertsPanelDrawer = lazy(() =>
+  import("../alerts/AlertsPanelDrawer").then((m) => ({
+    default: m.AlertsPanelDrawer,
+  })),
 );
 
 export interface AppLayoutProps {
@@ -80,8 +90,10 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         </main>
       </div>
 
-      {/* Global Alerts / Incident Panel Slide-out Drawer */}
-      <AlertsPanelDrawer />
+      {/* Global Alerts / Incident Panel Slide-out Drawer — lazy, see import above */}
+      <Suspense fallback={null}>
+        <AlertsPanelDrawer />
+      </Suspense>
 
       {/* Global App-Wide Flight Telemetry Detail Drawer */}
       <GlobalFlightDrawer />
