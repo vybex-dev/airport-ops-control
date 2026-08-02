@@ -5,30 +5,30 @@
  * (for secondary tabs/drawers) to cut down blocking time on slow networks.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 export type DatasetName =
-  | 'flights'
-  | 'gate_events'
-  | 'baggage'
-  | 'security_screening'
-  | 'maintenance_logs'
-  | 'passengers'
-  | 'retail_transactions'
-  | 'staff_shifts';
+  | "flights"
+  | "gate_events"
+  | "baggage"
+  | "security_screening"
+  | "maintenance_logs"
+  | "passengers"
+  | "retail_transactions"
+  | "staff_shifts";
 
 export const CRITICAL_DATASETS: DatasetName[] = [
-  'flights',
-  'gate_events',
-  'baggage',
-  'security_screening',
-  'maintenance_logs',
+  "flights",
+  "gate_events",
+  "baggage",
+  "security_screening",
+  "maintenance_logs",
 ];
 
 export const LAZY_DATASETS: DatasetName[] = [
-  'passengers',
-  'retail_transactions',
-  'staff_shifts',
+  "passengers",
+  "retail_transactions",
+  "staff_shifts",
 ];
 
 const ALL_DATASETS: DatasetName[] = [...CRITICAL_DATASETS, ...LAZY_DATASETS];
@@ -67,7 +67,8 @@ function prefetch(name: DatasetName): Promise<any[]> {
   if (promises[name]) return promises[name]!;
   const p = fetch(`/data/${name}.json`)
     .then((r) => {
-      if (!r.ok) throw new Error(`Failed to load /data/${name}.json: ${r.status}`);
+      if (!r.ok)
+        throw new Error(`Failed to load /data/${name}.json: ${r.status}`);
       return r.json() as Promise<any[]>;
     })
     .then((data) => {
@@ -76,7 +77,7 @@ function prefetch(name: DatasetName): Promise<any[]> {
       return data;
     })
     .catch((err) => {
-      console.error('[dataLoader]', err);
+      console.error("[dataLoader]", err);
       cache[name] = []; // degrade gracefully
       checkReadyStates();
       return [] as any[];
@@ -85,15 +86,18 @@ function prefetch(name: DatasetName): Promise<any[]> {
   return p;
 }
 
-// Kick off ALL fetches immediately when this module loads.
-ALL_DATASETS.forEach(prefetch);
+// Kick off ONLY critical fetches immediately. Lazy datasets are pulled
+// on-demand via useDataset() (or getDatasetAsync()) when their module
+// actually mounts, so they stop competing for bandwidth with whatever
+// gates first paint.
+CRITICAL_DATASETS.forEach(prefetch);
 
 /** Synchronous accessor — returns cached data or [] if not yet loaded. */
 export function getDatasetSync<T = any>(name: DatasetName): T[] {
   return (cache[name] as T[] | undefined) ?? [];
 }
 
-/** Async accessor — always resolves (never rejects). */
+/** Async accessor — always resolves (never rejects). Triggers a fetch if one hasn't started. */
 export function getDatasetAsync<T = any>(name: DatasetName): Promise<T[]> {
   return (promises[name] as Promise<T[]> | undefined) ?? prefetch(name);
 }
@@ -170,4 +174,33 @@ export function useDataReady(): boolean {
   }, []);
 
   return ready;
+}
+
+/**
+ * React hook: triggers the fetch for a single (typically lazy) dataset on
+ * mount, and re-renders the caller once it resolves. Use this in any module
+ * that consumes a LAZY dataset (passengers, retail_transactions, staff_shifts)
+ * instead of assuming getDatasetSync() already has data — since lazy datasets
+ * are no longer prefetched eagerly, nothing else will trigger the fetch or
+ * tell the component to recompute once it lands.
+ *
+ * Safe to call for CRITICAL datasets too — it just resolves ~immediately
+ * since prefetch already ran.
+ */
+export function useDataset<T = any>(
+  name: DatasetName,
+): { data: T[]; ready: boolean } {
+  const [ready, setReady] = useState(name in cache);
+
+  useEffect(() => {
+    let cancelled = false;
+    getDatasetAsync(name).then(() => {
+      if (!cancelled) setReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [name]);
+
+  return { data: getDatasetSync<T>(name), ready };
 }
