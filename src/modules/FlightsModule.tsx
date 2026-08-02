@@ -1,10 +1,10 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { useSimClock, useAlerts } from '@/store/useSimEngineHooks';
-import { StatusBadge } from '@/components/ui/StatusBadge';
-import { DataTableShell } from '@/components/ui/DataTableShell';
-import { Plane, AlertTriangle, ChevronRight } from 'lucide-react';
-import { useVirtualizer } from '@tanstack/react-virtual';
+import React, { useState, useMemo, useRef, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
+import { useSimClock, useAlerts } from "@/store/useSimEngineHooks";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import { DataTableShell } from "@/components/ui/DataTableShell";
+import { Plane, AlertTriangle, ChevronRight } from "lucide-react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 
 import {
   getAllFlights,
@@ -13,21 +13,21 @@ import {
   filterFlights,
   calculateLiveFlightState,
   type FlightFilterOptions,
-} from '@/lib/flights/flightDataService';
-import type { SimAlert } from '@/lib/sim/simTypes';
+} from "@/lib/flights/flightDataService";
+import type { SimAlert } from "@/lib/sim/simTypes";
 
-import { FlightFidsHeader } from './flights/FlightFidsHeader';
-import { FlightFilters } from './flights/FlightFilters';
-import { useFlightModalStore } from '@/store/useFlightModalStore';
+import { FlightFidsHeader } from "./flights/FlightFidsHeader";
+import { FlightFilters } from "./flights/FlightFilters";
+import { useFlightModalStore } from "@/store/useFlightModalStore";
 
 const initialFilters: FlightFilterOptions = {
-  search: '',
-  airline: 'ALL',
-  destination: 'ALL',
-  statusFilter: 'ALL',
-  gateFilter: 'ALL',
-  timeWindow: 'ALL',
-  preset: 'ALL',
+  search: "",
+  airline: "ALL",
+  destination: "ALL",
+  statusFilter: "ALL",
+  gateFilter: "ALL",
+  timeWindow: "ALL",
+  preset: "ALL",
 };
 
 export const FlightsModule: React.FC = () => {
@@ -44,10 +44,10 @@ export const FlightsModule: React.FC = () => {
 
   // Auto-open flight drawer if URL query param flightId is present
   useEffect(() => {
-    const flightIdParam = searchParams.get('flightId');
+    const flightIdParam = searchParams.get("flightId");
     if (flightIdParam) {
       const target = allFlights.find(
-        (f) => f.flightId.toLowerCase() === flightIdParam.toLowerCase()
+        (f) => f.flightId.toLowerCase() === flightIdParam.toLowerCase(),
       );
       if (target) {
         openFlightModal(target.flightId);
@@ -85,10 +85,18 @@ export const FlightsModule: React.FC = () => {
 
     for (const f of allFlights) {
       const state = calculateLiveFlightState(f, currentTimeMs, activeAlertsMap);
-      if (state.status === 'BOARDING') boarding++;
-      else if (state.status === 'SCHEDULED') onTime++;
-      else if (state.status === 'DELAYED') delayed++;
+      if (state.status === "BOARDING") boarding++;
+      else if (state.status === "SCHEDULED") onTime++;
 
+      // Count delays off the flight's historical delayMinutes field rather
+      // than live status: once a flight has passed its actual departure,
+      // calculateLiveFlightState reports 'DEPARTED' (its terminal state),
+      // so 'DELAYED' is only reachable for a flight that hasn't departed
+      // or boarded yet. In this dataset every flight is already departed,
+      // so that branch is effectively unreachable — leaving this badge
+      // stuck at 0 while the preset filter (which checks delayMinutes
+      // directly) and the table rows correctly show delayed flights.
+      if (f.delayMinutes > 0) delayed++;
       if (f.delayMinutes >= 150) critical++;
     }
 
@@ -156,17 +164,43 @@ export const FlightsModule: React.FC = () => {
         emptyMessage="No flight operations match your current multi-field filter."
       >
         {/* Table View Container */}
-        <div className="w-full flex flex-col min-w-[950px]" role="table" aria-label="FIDS Departure Schedule Board">
+        <div
+          className="w-full flex flex-col min-w-[950px]"
+          role="table"
+          aria-label="FIDS Departure Schedule Board"
+        >
           {/* FIDS Table Column Header */}
-          <div className="grid grid-cols-12 gap-2 font-data text-[11px] font-bold text-ink-muted uppercase tracking-wider px-md py-xs bg-surface-2/80 border-b border-line select-none" role="row">
-            <div className="col-span-2 sm:col-span-2" role="columnheader">Flight & Airline</div>
-            <div className="col-span-2 sm:col-span-2" role="columnheader">Route</div>
-            <div className="col-span-2 sm:col-span-1" role="columnheader">STD</div>
-            <div className="col-span-2 sm:col-span-1" role="columnheader">ATD / ETD</div>
-            <div className="col-span-1 sm:col-span-1" role="columnheader">Gate</div>
-            <div className="hidden sm:block sm:col-span-2" role="columnheader">Aircraft / Reg</div>
-            <div className="hidden lg:block lg:col-span-1" role="columnheader">Pax Load</div>
-            <div className="col-span-2 sm:col-span-2 text-right" role="columnheader">Sim Live Status</div>
+          <div
+            className="grid grid-cols-12 gap-2 font-data text-[11px] font-bold text-ink-muted uppercase tracking-wider px-md py-xs bg-surface-2/80 border-b border-line select-none"
+            role="row"
+          >
+            <div className="col-span-2 sm:col-span-2" role="columnheader">
+              Flight & Airline
+            </div>
+            <div className="col-span-2 sm:col-span-2" role="columnheader">
+              Route
+            </div>
+            <div className="col-span-2 sm:col-span-1" role="columnheader">
+              STD
+            </div>
+            <div className="col-span-2 sm:col-span-1" role="columnheader">
+              ATD / ETD
+            </div>
+            <div className="col-span-1 sm:col-span-1" role="columnheader">
+              Gate
+            </div>
+            <div className="hidden sm:block sm:col-span-2" role="columnheader">
+              Aircraft / Reg
+            </div>
+            <div className="hidden lg:block lg:col-span-1" role="columnheader">
+              Pax Load
+            </div>
+            <div
+              className="col-span-2 sm:col-span-2 text-right"
+              role="columnheader"
+            >
+              Sim Live Status
+            </div>
           </div>
 
           {/* Virtualized Rows List Container */}
@@ -178,16 +212,24 @@ export const FlightsModule: React.FC = () => {
             <div
               style={{
                 height: `${rowVirtualizer.getTotalSize()}px`,
-                width: '100%',
-                position: 'relative',
+                width: "100%",
+                position: "relative",
               }}
             >
               {rowVirtualizer.getVirtualItems().map((virtualRow) => {
                 const flight = filteredFlights[virtualRow.index];
-                const liveState = calculateLiveFlightState(flight, currentTimeMs, activeAlertsMap);
+                const liveState = calculateLiveFlightState(
+                  flight,
+                  currentTimeMs,
+                  activeAlertsMap,
+                );
                 const isSelected = false; // selection now managed by global modal store
                 const loadFactorPct =
-                  flight.capacity > 0 ? Math.round((flight.passengerCount / flight.capacity) * 100) : 0;
+                  flight.capacity > 0
+                    ? Math.round(
+                        (flight.passengerCount / flight.capacity) * 100,
+                      )
+                    : 0;
 
                 return (
                   <div
@@ -197,36 +239,41 @@ export const FlightsModule: React.FC = () => {
                     aria-label={`Flight ${flight.flightId} to ${flight.destination}`}
                     onClick={() => openFlightModal(flight.flightId)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
+                      if (e.key === "Enter" || e.key === " ") {
                         e.preventDefault();
                         openFlightModal(flight.flightId);
                       }
                     }}
                     style={{
-                      position: 'absolute',
+                      position: "absolute",
                       top: 0,
                       left: 0,
-                      width: '100%',
+                      width: "100%",
                       height: `${virtualRow.size}px`,
                       transform: `translateY(${virtualRow.start}px)`,
                     }}
                     className={`grid grid-cols-12 gap-2 items-center px-md py-2xs border-b border-line/60 cursor-pointer transition-colors select-none font-data text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-signal ${
                       isSelected
-                        ? 'bg-accent-signal/10 border-l-4 border-l-accent-signal'
+                        ? "bg-accent-signal/10 border-l-4 border-l-accent-signal"
                         : liveState.hasActiveAlert
-                        ? 'bg-status-alert/10 border-l-4 border-l-status-alert hover:bg-status-alert/20'
-                        : liveState.status === 'BOARDING'
-                        ? 'bg-status-boarding/5 hover:bg-status-boarding/15'
-                        : 'hover:bg-surface-2/60'
+                          ? "bg-status-alert/10 border-l-4 border-l-status-alert hover:bg-status-alert/20"
+                          : liveState.status === "BOARDING"
+                            ? "bg-status-boarding/5 hover:bg-status-boarding/15"
+                            : "hover:bg-surface-2/60"
                     }`}
                   >
                     {/* 1. Flight ID & Airline */}
-                    <div className="col-span-2 sm:col-span-2 flex items-center gap-xs overflow-hidden" role="cell">
+                    <div
+                      className="col-span-2 sm:col-span-2 flex items-center gap-xs overflow-hidden"
+                      role="cell"
+                    >
                       <span className="px-1.5 py-0.5 rounded bg-surface-2 text-ink-primary border border-line font-bold text-xs shrink-0">
                         {flight.airlineCode}
                       </span>
                       <div className="truncate">
-                        <span className="font-bold text-ink-primary block truncate">{flight.flightId}</span>
+                        <span className="font-bold text-ink-primary block truncate">
+                          {flight.flightId}
+                        </span>
                         <span className="text-[10px] text-ink-muted hidden sm:block truncate">
                           {flight.airlineName}
                         </span>
@@ -234,21 +281,31 @@ export const FlightsModule: React.FC = () => {
                     </div>
 
                     {/* 2. Route */}
-                    <div className="col-span-2 sm:col-span-2 flex items-center gap-1 font-data" role="cell">
+                    <div
+                      className="col-span-2 sm:col-span-2 flex items-center gap-1 font-data"
+                      role="cell"
+                    >
                       <span className="text-ink-muted">DEL</span>
                       <span className="text-line">&rarr;</span>
-                      <span className="font-bold text-accent-signal">{flight.destination}</span>
+                      <span className="font-bold text-accent-signal">
+                        {flight.destination}
+                      </span>
                     </div>
 
                     {/* 3. STD */}
-                    <div className="col-span-2 sm:col-span-1 text-ink-primary font-medium" role="cell">
+                    <div
+                      className="col-span-2 sm:col-span-1 text-ink-primary font-medium"
+                      role="cell"
+                    >
                       {flight.scheduledDeparture.slice(11, 16)}
                     </div>
 
                     {/* 4. ATD / ETD */}
                     <div
                       className={`col-span-2 sm:col-span-1 font-bold ${
-                        flight.delayMinutes > 0 ? 'text-status-delayed' : 'text-status-ontime'
+                        flight.delayMinutes > 0
+                          ? "text-status-delayed"
+                          : "text-status-ontime"
                       }`}
                       role="cell"
                     >
@@ -263,9 +320,16 @@ export const FlightsModule: React.FC = () => {
                     </div>
 
                     {/* 6. Aircraft & Reg */}
-                    <div className="hidden sm:block sm:col-span-2 text-ink-muted truncate" role="cell">
-                      <span className="text-ink-primary font-medium">{flight.aircraftType}</span>{' '}
-                      <span className="text-[11px]">({flight.aircraftReg})</span>
+                    <div
+                      className="hidden sm:block sm:col-span-2 text-ink-muted truncate"
+                      role="cell"
+                    >
+                      <span className="text-ink-primary font-medium">
+                        {flight.aircraftType}
+                      </span>{" "}
+                      <span className="text-[11px]">
+                        ({flight.aircraftReg})
+                      </span>
                     </div>
 
                     {/* 7. Pax Load */}
@@ -275,7 +339,9 @@ export const FlightsModule: React.FC = () => {
                         <div className="w-12 h-1.5 rounded-full bg-surface-2 border border-line overflow-hidden">
                           <div
                             className={`h-full ${
-                              loadFactorPct > 85 ? 'bg-status-ontime' : 'bg-status-boarding'
+                              loadFactorPct > 85
+                                ? "bg-status-ontime"
+                                : "bg-status-boarding"
                             }`}
                             style={{ width: `${loadFactorPct}%` }}
                           />
@@ -286,12 +352,19 @@ export const FlightsModule: React.FC = () => {
                     {/* 8. Live Status & Alert */}
                     <div className="col-span-2 sm:col-span-2 flex items-center justify-end gap-xs">
                       {liveState.hasActiveAlert && (
-                        <span className="p-1 rounded bg-status-alert/20 text-status-alert animate-bounce" title="Active Phase 2 Operational Alert">
+                        <span
+                          className="p-1 rounded bg-status-alert/20 text-status-alert animate-bounce"
+                          title="Active Phase 2 Operational Alert"
+                        >
                           <AlertTriangle className="h-3.5 w-3.5" />
                         </span>
                       )}
 
-                      <StatusBadge variant={liveState.badgeVariant} size="sm" pulseDot={liveState.isLive}>
+                      <StatusBadge
+                        variant={liveState.badgeVariant}
+                        size="sm"
+                        pulseDot={liveState.isLive}
+                      >
                         {liveState.statusLabel}
                       </StatusBadge>
                       <ChevronRight className="h-4 w-4 text-ink-muted" />
