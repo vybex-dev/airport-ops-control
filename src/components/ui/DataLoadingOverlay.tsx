@@ -1,19 +1,13 @@
-import React from 'react';
-import { useDataReady } from '@/lib/sim/dataLoader';
+import { useCriticalDataReady } from '@/lib/sim/dataLoader';
 
 /**
  * DataLoadingOverlay
  *
- * Shows a minimal full-screen loading screen while the 8 JSON datasets
- * are being fetched from /data/*.json. Disappears the moment all data
- * is ready (typically 0.5–2s on fast networks, 2–5s on Slow 4G).
- *
- * Rendered before the full AppLayout so users see instant visual feedback
- * rather than a partial/blank screen. Uses only inline styles and SVG so
- * it renders with zero external resource dependencies.
+ * Shows a minimal full-screen loading screen while the critical JSON datasets
+ * are being fetched. Disappears the moment critical data is ready.
  */
 export const DataLoadingOverlay: React.FC = () => {
-  const ready = useDataReady();
+  const ready = useCriticalDataReady();
 
   if (ready) return null;
 

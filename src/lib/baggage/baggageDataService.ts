@@ -1,4 +1,4 @@
-import { getDatasetSync, onAllDataReady } from '@/lib/sim/dataLoader';
+import { getDatasetSync, onCriticalDataReady } from '@/lib/sim/dataLoader';
 import type { Bag } from '@/data/types/bag';
 import { parseSimTimestamp, getAllFlights } from '@/lib/flights/flightDataService';
 import type { Flight } from '@/data/types';
@@ -40,7 +40,7 @@ function buildBaggageIndex() {
   }
 }
 
-onAllDataReady(buildBaggageIndex);
+onCriticalDataReady(buildBaggageIndex);
 
 export function getAllBaggage(): Bag[] {
   return allBags;

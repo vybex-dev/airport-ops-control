@@ -1,4 +1,4 @@
-import { getDatasetSync, onAllDataReady } from '@/lib/sim/dataLoader';
+import { getDatasetSync, onAllDataReady, onCriticalDataReady } from '@/lib/sim/dataLoader';
 import type { Flight, Passenger, Bag, GateEvent, MaintenanceLog } from '@/data/types';
 import type { SimAlert } from '@/lib/sim/simTypes';
 
@@ -96,7 +96,8 @@ function buildIndices() {
   }
 }
 
-/** Rebuild indices when all data is ready, then keep them current. */
+/** Rebuild indices when critical data is ready first, then full load. */
+onCriticalDataReady(buildIndices);
 onAllDataReady(buildIndices);
 
 function ensureIndices() {
