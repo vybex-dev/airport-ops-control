@@ -80,24 +80,36 @@ export function generateAllAlgorithmicAlerts(): SimAlert[] {
     }
   }
 
-  // 3. RULE_MAINTENANCE_DEFECT: High-severity technical defects on VT-ABC
+  // 3. RULE_MAINTENANCE_DEFECT: High-severity technical defects, deduped per aircraft
+  // so a single ongoing issue doesn't spawn one alert per underlying work order.
+  const latestDefectByAircraft: Record<string, any> = {};
   for (const m of maintenance as any[]) {
     if (m.severity >= 3) {
+      const existing = latestDefectByAircraft[m.aircraftReg];
       const tsMs = parseTimestampToMs(m.openedTimestamp);
-      alerts.push({
-        id: `alert-mtc-${m.workOrderId}`,
-        ruleId: "RULE_MAINTENANCE_DEFECT",
-        timestamp: m.openedTimestamp,
-        timestampMs: tsMs,
-        severity: "critical",
-        title: `Airframe ${m.aircraftReg} Hydraulic Seal Defect`,
-        description: `Work order ${m.workOrderId} logged for ${m.aircraftReg} (${m.defectDescription} - ${m.partAffected}). Linked flight: ${m.flightId}.`,
-        affectedFlightId: m.flightId,
-        affectedRef: m.workOrderId,
-        isAcknowledged: false,
-        source: "maintenance",
-      });
+      if (!existing || tsMs > parseTimestampToMs(existing.openedTimestamp)) {
+        latestDefectByAircraft[m.aircraftReg] = m;
+      }
     }
+  }
+
+  for (const aircraftReg in latestDefectByAircraft) {
+    const m = latestDefectByAircraft[aircraftReg];
+    const tsMs = parseTimestampToMs(m.openedTimestamp);
+    const severity: AlertSeverity = m.severity >= 4 ? "critical" : "warning";
+    alerts.push({
+      id: `alert-mtc-${m.workOrderId}`,
+      ruleId: "RULE_MAINTENANCE_DEFECT",
+      timestamp: m.openedTimestamp,
+      timestampMs: tsMs,
+      severity,
+      title: `Airframe ${m.aircraftReg} ${m.defectDescription} (${m.partAffected})`,
+      description: `Work order ${m.workOrderId} logged for ${m.aircraftReg} (${m.defectDescription} - ${m.partAffected}). Linked flight: ${m.flightId}.`,
+      affectedFlightId: m.flightId,
+      affectedRef: m.workOrderId,
+      isAcknowledged: false,
+      source: "maintenance",
+    });
   }
 
   // Sort alerts chronologically ascending
