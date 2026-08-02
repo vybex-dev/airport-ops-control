@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
-import { RadarSweep } from '../ui/RadarSweep';
-import { SearchInput } from '../ui/SearchInput';
-import { StatusBadge } from '../ui/StatusBadge';
-import { AnimatedNumber } from '../ui/AnimatedNumber';
-import { useSimClock, useAlerts, useAirportKPIs } from '@/store/useSimEngineHooks';
-import { Plane, Clock, Menu, X, ShieldAlert } from 'lucide-react';
+import React from "react";
+import { RadarSweep } from "../ui/RadarSweep";
+import { StatusBadge } from "../ui/StatusBadge";
+import { AnimatedNumber } from "../ui/AnimatedNumber";
+import {
+  useSimClock,
+  useAlerts,
+  useAirportKPIs,
+} from "@/store/useSimEngineHooks";
+import { Plane, Clock, Menu, X, ShieldAlert, Play, Pause } from "lucide-react";
 
 export interface TopStatusBarProps {
   onToggleMobileNav?: () => void;
@@ -15,8 +18,8 @@ export const TopStatusBar: React.FC<TopStatusBarProps> = ({
   onToggleMobileNav,
   isMobileNavOpen = false,
 }) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const { formattedTime, isPlaying, speedMultiplier } = useSimClock();
+  const { formattedTime, isPlaying, speedMultiplier, togglePlay } =
+    useSimClock();
   const { unacknowledgedCount, openAlertsDrawer } = useAlerts();
   const kpis = useAirportKPIs();
 
@@ -29,11 +32,19 @@ export const TopStatusBar: React.FC<TopStatusBarProps> = ({
             <button
               type="button"
               onClick={onToggleMobileNav}
-              aria-label={isMobileNavOpen ? 'Close Navigation Menu' : 'Open Navigation Menu'}
+              aria-label={
+                isMobileNavOpen
+                  ? "Close Navigation Menu"
+                  : "Open Navigation Menu"
+              }
               aria-expanded={isMobileNavOpen}
               className="lg:hidden p-1.5 rounded text-ink-muted hover:text-ink-primary hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-signal shrink-0"
             >
-              {isMobileNavOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              {isMobileNavOpen ? (
+                <X className="h-5 w-5" />
+              ) : (
+                <Menu className="h-5 w-5" />
+              )}
             </button>
           )}
 
@@ -66,14 +77,24 @@ export const TopStatusBar: React.FC<TopStatusBarProps> = ({
             <Clock className="h-3.5 w-3.5 text-accent-signal" />
             <div className="flex flex-col">
               <div className="flex items-center gap-1.5 text-xs text-ink-primary font-medium tracking-tight">
-                <span className="text-accent-signal font-semibold">{formattedTime}</span>
+                <span className="text-accent-signal font-semibold">
+                  {formattedTime}
+                </span>
                 <span className="text-ink-muted">IST</span>
               </div>
               <div className="flex items-center gap-1 text-[10px] text-ink-muted">
                 <span>UTC+05:30</span>
                 <span className="text-line">•</span>
-                <span className={isPlaying ? 'text-status-ontime font-medium' : 'text-ink-muted'}>
-                  {isPlaying ? `SIM PLAYING (${speedMultiplier}x)` : 'SIM PAUSED'}
+                <span
+                  className={
+                    isPlaying
+                      ? "text-status-ontime font-medium"
+                      : "text-ink-muted"
+                  }
+                >
+                  {isPlaying
+                    ? `SIM PLAYING (${speedMultiplier}x)`
+                    : "SIM PAUSED"}
                 </span>
               </div>
             </div>
@@ -108,11 +129,13 @@ export const TopStatusBar: React.FC<TopStatusBarProps> = ({
             onClick={openAlertsDrawer}
             className={`flex items-center gap-2xs px-xs py-1 rounded border transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-signal shrink-0 ${
               unacknowledgedCount > 0
-                ? 'bg-status-alert/15 border-status-alert/50 text-status-alert shadow-[0_0_10px_rgba(244,63,94,0.2)] hover:bg-status-alert/25'
-                : 'bg-surface-1 border-line text-ink-muted hover:text-ink-primary'
+                ? "bg-status-alert/15 border-status-alert/50 text-status-alert shadow-[0_0_10px_rgba(244,63,94,0.2)] hover:bg-status-alert/25"
+                : "bg-surface-1 border-line text-ink-muted hover:text-ink-primary"
             }`}
           >
-            <ShieldAlert className={`h-4 w-4 shrink-0 ${unacknowledgedCount > 0 ? 'animate-pulse text-status-alert' : ''}`} />
+            <ShieldAlert
+              className={`h-4 w-4 shrink-0 ${unacknowledgedCount > 0 ? "animate-pulse text-status-alert" : ""}`}
+            />
             <div className="font-data text-xs flex items-center gap-1">
               <span className="font-bold">
                 <AnimatedNumber value={unacknowledgedCount} />
@@ -121,11 +144,27 @@ export const TopStatusBar: React.FC<TopStatusBarProps> = ({
             </div>
           </button>
 
-          <SearchInput
-            value={searchQuery}
-            onChange={setSearchQuery}
-            className="w-20 focus-within:w-40 xs:w-28 xs:focus-within:w-44 sm:w-48 sm:focus-within:w-60 md:w-60 md:focus-within:w-72 lg:w-72 lg:focus-within:w-80 shrink min-w-0"
-          />
+          <button
+            type="button"
+            onClick={togglePlay}
+            aria-label={
+              isPlaying ? "Pause Simulation Clock" : "Play Simulation Clock"
+            }
+            className={`flex items-center gap-2xs px-xs py-1 rounded border transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-signal shrink-0 ${
+              isPlaying
+                ? "bg-status-ontime/15 border-status-ontime/50 text-status-ontime hover:bg-status-ontime/25"
+                : "bg-surface-1 border-line text-ink-muted hover:text-ink-primary"
+            }`}
+          >
+            {isPlaying ? (
+              <Pause className="h-4 w-4 shrink-0" />
+            ) : (
+              <Play className="h-4 w-4 shrink-0" />
+            )}
+            <span className="hidden sm:inline font-data text-xs font-semibold">
+              {isPlaying ? "PAUSE" : "PLAY"}
+            </span>
+          </button>
         </div>
       </div>
     </header>
