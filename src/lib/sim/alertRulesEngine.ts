@@ -1,6 +1,6 @@
-import type { SimAlert, AlertSeverity } from './simTypes';
-import { parseTimestampToMs } from './timeUtils';
-import { getDatasetSync, onAllDataReady } from './dataLoader';
+import type { SimAlert, AlertSeverity } from "./simTypes";
+import { parseTimestampToMs } from "./timeUtils";
+import { getDatasetSync, onAllDataReady } from "./dataLoader";
 
 let cachedAllAlerts: SimAlert[] | null = null;
 
@@ -12,8 +12,8 @@ onAllDataReady(() => {
 export function generateAllAlgorithmicAlerts(): SimAlert[] {
   if (cachedAllAlerts) return cachedAllAlerts;
 
-  const flights = getDatasetSync('flights');
-  const maintenance = getDatasetSync('maintenance_logs');
+  const flights = getDatasetSync("flights");
+  const maintenance = getDatasetSync("maintenance_logs");
 
   const alerts: SimAlert[] = [];
 
@@ -21,10 +21,11 @@ export function generateAllAlgorithmicAlerts(): SimAlert[] {
   for (const f of flights as any[]) {
     if (f.delayMinutes >= 60) {
       const tsMs = parseTimestampToMs(f.scheduledDeparture);
-      const severity: AlertSeverity = f.delayMinutes >= 150 ? 'critical' : 'warning';
+      const severity: AlertSeverity =
+        f.delayMinutes >= 150 ? "critical" : "warning";
       alerts.push({
         id: `alert-delay-${f.flightId}`,
-        ruleId: 'RULE_FLIGHT_DELAY',
+        ruleId: "RULE_FLIGHT_DELAY",
         timestamp: f.scheduledDeparture,
         timestampMs: tsMs,
         severity,
@@ -32,7 +33,7 @@ export function generateAllAlgorithmicAlerts(): SimAlert[] {
         description: `Flight ${f.flightId} delayed by ${f.delayMinutes} minutes due to ${f.delayReason}. Scheduled gate: ${f.gate}.`,
         affectedFlightId: f.flightId,
         isAcknowledged: false,
-        source: 'flight',
+        source: "flight",
       });
     }
   }
@@ -40,7 +41,7 @@ export function generateAllAlgorithmicAlerts(): SimAlert[] {
   // 2. RULE_GATE_CONFLICT: Detect flights assigned to same gate within 45 minutes of scheduled departure
   const flightsByGate: Record<string, any[]> = {};
   for (const f of flights as any[]) {
-    if (f.gate && f.gate !== 'Unassigned') {
+    if (f.gate && f.gate !== "Unassigned") {
       if (!flightsByGate[f.gate]) flightsByGate[f.gate] = [];
       flightsByGate[f.gate].push(f);
     }
@@ -50,7 +51,8 @@ export function generateAllAlgorithmicAlerts(): SimAlert[] {
     const list = flightsByGate[gate];
     list.sort(
       (a, b) =>
-        parseTimestampToMs(a.scheduledDeparture) - parseTimestampToMs(b.scheduledDeparture)
+        parseTimestampToMs(a.scheduledDeparture) -
+        parseTimestampToMs(b.scheduledDeparture),
     );
 
     for (let i = 0; i < list.length - 1; i++) {
@@ -63,16 +65,16 @@ export function generateAllAlgorithmicAlerts(): SimAlert[] {
       if (diffMinutes < 45) {
         alerts.push({
           id: `alert-gate-conflict-${f1.flightId}-${f2.flightId}`,
-          ruleId: 'RULE_GATE_CONFLICT',
+          ruleId: "RULE_GATE_CONFLICT",
           timestamp: f1.scheduledDeparture,
           timestampMs: t1,
-          severity: 'warning',
+          severity: "warning",
           title: `Gate ${gate} Concourse Tight Turnaround Conflict`,
           description: `Flight ${f1.flightId} and Flight ${f2.flightId} scheduled at Gate ${gate} within ${Math.round(diffMinutes)}m window.`,
           affectedFlightId: f1.flightId,
           affectedRef: `Gate ${gate}`,
           isAcknowledged: false,
-          source: 'gate',
+          source: "gate",
         });
       }
     }
@@ -84,16 +86,16 @@ export function generateAllAlgorithmicAlerts(): SimAlert[] {
       const tsMs = parseTimestampToMs(m.openedTimestamp);
       alerts.push({
         id: `alert-mtc-${m.workOrderId}`,
-        ruleId: 'RULE_MAINTENANCE_DEFECT',
+        ruleId: "RULE_MAINTENANCE_DEFECT",
         timestamp: m.openedTimestamp,
         timestampMs: tsMs,
-        severity: 'critical',
+        severity: "critical",
         title: `Airframe ${m.aircraftReg} Hydraulic Seal Defect`,
         description: `Work order ${m.workOrderId} logged for ${m.aircraftReg} (${m.defectDescription} - ${m.partAffected}). Linked flight: ${m.flightId}.`,
         affectedFlightId: m.flightId,
         affectedRef: m.workOrderId,
         isAcknowledged: false,
-        source: 'maintenance',
+        source: "maintenance",
       });
     }
   }
