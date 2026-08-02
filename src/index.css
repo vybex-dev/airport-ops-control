@@ -21,6 +21,12 @@
  * ============================================================
  */
 @theme {
+  /* Extra breakpoint below Tailwind's default 'sm' (640px) — needed
+     because the header must shed elements gradually starting well
+     below 640px on real phones (e.g. 360-390px viewports), not jump
+     straight from "mobile" to "sm" in one step. */
+  --breakpoint-xs: 22.5rem; /* 360px */
+
   /* --- Surfaces: deep blue-black, not neutral/true black --- */
   --color-surface-0: #0a0e14; /* app background */
   --color-surface-1: #111826; /* panel/card background */
