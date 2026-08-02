@@ -1,4 +1,4 @@
-import baggageData from '@/data/parsed/baggage.json';
+import { getDatasetSync, onAllDataReady } from '@/lib/sim/dataLoader';
 import type { Bag } from '@/data/types/bag';
 import { parseSimTimestamp, getAllFlights } from '@/lib/flights/flightDataService';
 import type { Flight } from '@/data/types';
@@ -25,20 +25,22 @@ export interface BaggageFilterOptions {
   hasAlertOnly: boolean;
 }
 
-const allBags = baggageData as Bag[];
+let allBags: Bag[] = [];
 const bagsByFlightMap = new Map<string, Bag[]>();
 const bagsByTagMap = new Map<string, Bag>();
 
-// Index baggage records once
-(() => {
+function buildBaggageIndex() {
+  allBags = getDatasetSync<Bag>('baggage');
+  bagsByFlightMap.clear();
+  bagsByTagMap.clear();
   for (const b of allBags) {
     bagsByTagMap.set(b.bagTagId, b);
-    if (!bagsByFlightMap.has(b.flightId)) {
-      bagsByFlightMap.set(b.flightId, []);
-    }
+    if (!bagsByFlightMap.has(b.flightId)) bagsByFlightMap.set(b.flightId, []);
     bagsByFlightMap.get(b.flightId)!.push(b);
   }
-})();
+}
+
+onAllDataReady(buildBaggageIndex);
 
 export function getAllBaggage(): Bag[] {
   return allBags;

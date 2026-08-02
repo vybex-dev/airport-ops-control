@@ -1,4 +1,4 @@
-import staffShiftsData from '@/data/parsed/staff_shifts.json';
+import { getDatasetSync } from '@/lib/sim/dataLoader';
 import type { StaffShift } from '@/data/types';
 import { parseSimTimestamp } from '@/lib/flights/flightDataService';
 
@@ -16,10 +16,10 @@ export interface StaffFilterOptions {
   departmentFilter: string; // 'ALL' | department
 }
 
-const allStaffShifts: StaffShift[] = staffShiftsData as StaffShift[];
+const _getStaffShifts = () => getDatasetSync<StaffShift>('staff_shifts');
 
 export function getAllStaffShifts(): StaffShift[] {
-  return allStaffShifts;
+  return _getStaffShifts();
 }
 
 /**
@@ -111,6 +111,7 @@ export function filterStaffShifts(
  * Get aggregate Staffing KPIs for current sim time
  */
 export function getStaffKPIs(currentTimeMs: number) {
+  const allStaffShifts = _getStaffShifts();
   let totalRoster = allStaffShifts.length;
   let onDutyCount = 0;
   let offDutyCount = 0;

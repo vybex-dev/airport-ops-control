@@ -7,10 +7,10 @@ export interface MaintenanceFilterOptions {
   severityFilter?: string;
 }
 
-const getAllMaintenanceLogs = () => getDatasetSync<MaintenanceLog>('maintenance_logs');
+const _getMaintenanceLogs = () => getDatasetSync<MaintenanceLog>('maintenance_logs');
 
 export function getAllMaintenanceLogs(): MaintenanceLog[] {
-  return getAllMaintenanceLogs();
+  return _getMaintenanceLogs();
 }
 
 /**
@@ -51,7 +51,7 @@ export function filterMaintenanceLogs(
  * Maintenance summary KPIs
  */
 export function getMaintenanceKPIs() {
-  const allMaintenanceLogs = getAllMaintenanceLogs();
+  const allMaintenanceLogs = _getMaintenanceLogs();
   const totalCount = allMaintenanceLogs.length;
   const uniqueFlightsSet = new Set<string>();
 

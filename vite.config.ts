@@ -12,23 +12,29 @@ export default defineConfig({
     },
   },
   build: {
-    chunkSizeWarningLimit: 6000,
-    // Manual chunking so vendor libs & parsed JSON datasets split cleanly
-    // from app code — keeps initial JS payload lean for Lighthouse Performance.
+    // Surface real sizes — do not hide bundle regressions
+    chunkSizeWarningLimit: 1000,
+    // Show compressed sizes in the build output
+    reportCompressedSize: true,
+    // Target modern browsers — smaller output than the ES2017 default
+    target: 'es2020',
+    // esbuild minifier (default in Vite ≥5, faster than terser, equally good)
+    minify: 'esbuild',
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (id.includes('/src/data/parsed/')) {
-            return 'parsed-data';
-          }
+          // JSON data is now served from /public/data/ — NOT bundled.
+          // The 'parsed-data' chunk is intentionally removed.
           if (id.includes('node_modules')) {
             if (id.includes('recharts')) return 'vendor-charts';
             if (id.includes('framer-motion')) return 'vendor-motion';
             if (id.includes('react-dom') || id.includes('/react/')) return 'vendor-react';
+            if (id.includes('react-router')) return 'vendor-router';
+            if (id.includes('zustand')) return 'vendor-state';
+            if (id.includes('lucide-react')) return 'vendor-icons';
           }
         },
       },
     },
   },
 })
-
