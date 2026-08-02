@@ -1,22 +1,25 @@
 import type { SimEvent, AlertSeverity } from './simTypes';
-import flights from '@/data/parsed/flights.json';
-import gateEvents from '@/data/parsed/gate_events.json';
-import baggage from '@/data/parsed/baggage.json';
-import security from '@/data/parsed/security_screening.json';
-import maintenance from '@/data/parsed/maintenance_logs.json';
+import { parseTimestampToMs } from './timeUtils';
+import { getDatasetSync, onAllDataReady } from './dataLoader';
 
-export function parseTimestampToMs(tsStr: string): number {
-  if (!tsStr) return 0;
-  // Convert "YYYY-MM-DD HH:mm:ss" to ISO string "YYYY-MM-DDTHH:mm:ss"
-  const formatted = tsStr.includes('T') ? tsStr : tsStr.replace(' ', 'T');
-  const ms = new Date(formatted).getTime();
-  return isNaN(ms) ? 0 : ms;
-}
-
+// Cached sorted event list — rebuilt whenever data arrives
 let cachedEvents: SimEvent[] | null = null;
+
+/** Invalidate the event cache when fresh data loads. */
+onAllDataReady(() => {
+  cachedEvents = null;
+});
+
+export { parseTimestampToMs };
 
 export function getAllSimEvents(): SimEvent[] {
   if (cachedEvents) return cachedEvents;
+
+  const flights = getDatasetSync('flights');
+  const gateEvents = getDatasetSync('gate_events');
+  const baggage = getDatasetSync('baggage');
+  const security = getDatasetSync('security_screening');
+  const maintenance = getDatasetSync('maintenance_logs');
 
   const events: SimEvent[] = [];
 
@@ -135,8 +138,13 @@ export function getAllSimEvents(): SimEvent[] {
 
   // Sort events chronologically ascending
   events.sort((a, b) => a.timestampMs - b.timestampMs);
-  cachedEvents = events;
-  return cachedEvents;
+
+  // Only cache when we have real data (not empty bootstrap arrays)
+  if (flights.length > 0) {
+    cachedEvents = events;
+  }
+
+  return events;
 }
 
 /**

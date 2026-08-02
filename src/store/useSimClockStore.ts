@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { parseTimestampToMs } from '@/lib/sim/eventIndexer';
+import { parseTimestampToMs } from '@/lib/sim/timeUtils';
 
 // Timeline limits based on dataset range (2024-10-01 to 2024-12-30)
 export const DATASET_START_MS = parseTimestampToMs('2024-10-01 00:00:00');

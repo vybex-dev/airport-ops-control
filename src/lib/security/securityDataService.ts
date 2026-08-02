@@ -1,4 +1,4 @@
-import securityData from '@/data/parsed/security_screening.json';
+import { getDatasetSync } from '@/lib/sim/dataLoader';
 import type { SecurityScreening } from '@/data/types/securityScreening';
 import { parseSimTimestamp } from '@/lib/flights/flightDataService';
 import type { SimAlert } from '@/lib/sim/simTypes';
@@ -27,10 +27,10 @@ export interface SecurityFilterOptions {
   timeWindow: string; // 'ALL' | 'PAST_1H' | 'PAST_6H'
 }
 
-const allSecurityLogs = securityData as SecurityScreening[];
+const getAllSecurityLogs = () => getDatasetSync<SecurityScreening>('security_screening');
 
 export function getAllSecurityScreenings(): SecurityScreening[] {
-  return allSecurityLogs;
+  return getAllSecurityLogs();
 }
 
 /**
@@ -61,7 +61,7 @@ export function getSecurityThroughputSeries(
     let queueEntered = 0;
     let cleared = 0;
 
-    for (const log of allSecurityLogs) {
+    for (const log of getAllSecurityLogs()) {
       const enterMs = parseSimTimestamp(log.queueEnterTimestamp);
       const clearMs = parseSimTimestamp(log.clearedTimestamp);
 
@@ -98,7 +98,7 @@ export function getLaneStatusList(currentTimeMs: number): LaneStatus[] {
   const lanes: LaneStatus[] = [];
 
   for (let laneNum = 1; laneNum <= 8; laneNum++) {
-    const laneLogs = allSecurityLogs.filter((s) => s.laneNumber === laneNum);
+    const laneLogs = getAllSecurityLogs().filter((s) => s.laneNumber === laneNum);
 
     // Filter logs processed up to currentTimeMs
     const processedUpToNow = laneLogs.filter(

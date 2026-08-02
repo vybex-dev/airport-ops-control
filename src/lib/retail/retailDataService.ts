@@ -1,4 +1,4 @@
-import retailData from '@/data/parsed/retail_transactions.json';
+import { getDatasetSync } from '@/lib/sim/dataLoader';
 import type { RetailTransaction } from '@/data/types';
 
 export interface RetailFilterOptions {
@@ -13,10 +13,10 @@ export interface HourlyRevenueTrend {
   transactionCount: number;
 }
 
-const allTransactions: RetailTransaction[] = retailData as RetailTransaction[];
+const getAllTransactions = () => getDatasetSync<RetailTransaction>('retail_transactions');
 
 export function getAllRetailTransactions(): RetailTransaction[] {
-  return allTransactions;
+  return getAllTransactions();
 }
 
 /**
@@ -55,6 +55,7 @@ export function filterRetailTransactions(
  * Aggregate summary KPIs
  */
 export function getRetailKPIs() {
+  const allTransactions = getAllTransactions();
   const totalCount = allTransactions.length;
   let totalRevenueInr = 0;
   const uniqueFlightsSet = new Set<string>();
@@ -79,6 +80,7 @@ export function getRetailKPIs() {
  * Aggregates transactions into hourly buckets (00:00 to 23:00) for Recharts visual graphs
  */
 export function getHourlyRetailTrend(): HourlyRevenueTrend[] {
+  const allTransactions = getAllTransactions();
   const hourMap = new Map<number, { revenue: number; count: number }>();
 
   for (let i = 0; i < 24; i++) {

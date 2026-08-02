@@ -1,4 +1,4 @@
-import maintenanceData from '@/data/parsed/maintenance_logs.json';
+import { getDatasetSync } from '@/lib/sim/dataLoader';
 import type { MaintenanceLog } from '@/data/types';
 
 export interface MaintenanceFilterOptions {
@@ -7,10 +7,10 @@ export interface MaintenanceFilterOptions {
   severityFilter?: string;
 }
 
-const allMaintenanceLogs: MaintenanceLog[] = maintenanceData as MaintenanceLog[];
+const getAllMaintenanceLogs = () => getDatasetSync<MaintenanceLog>('maintenance_logs');
 
 export function getAllMaintenanceLogs(): MaintenanceLog[] {
-  return allMaintenanceLogs;
+  return getAllMaintenanceLogs();
 }
 
 /**
@@ -51,6 +51,7 @@ export function filterMaintenanceLogs(
  * Maintenance summary KPIs
  */
 export function getMaintenanceKPIs() {
+  const allMaintenanceLogs = getAllMaintenanceLogs();
   const totalCount = allMaintenanceLogs.length;
   const uniqueFlightsSet = new Set<string>();
 

@@ -1,12 +1,19 @@
 import type { SimAlert, AlertSeverity } from './simTypes';
-import { parseTimestampToMs } from './eventIndexer';
-import flights from '@/data/parsed/flights.json';
-import maintenance from '@/data/parsed/maintenance_logs.json';
+import { parseTimestampToMs } from './timeUtils';
+import { getDatasetSync, onAllDataReady } from './dataLoader';
 
 let cachedAllAlerts: SimAlert[] | null = null;
 
+/** Invalidate alert cache when fresh data loads. */
+onAllDataReady(() => {
+  cachedAllAlerts = null;
+});
+
 export function generateAllAlgorithmicAlerts(): SimAlert[] {
   if (cachedAllAlerts) return cachedAllAlerts;
+
+  const flights = getDatasetSync('flights');
+  const maintenance = getDatasetSync('maintenance_logs');
 
   const alerts: SimAlert[] = [];
 
@@ -93,8 +100,13 @@ export function generateAllAlgorithmicAlerts(): SimAlert[] {
 
   // Sort alerts chronologically ascending
   alerts.sort((a, b) => a.timestampMs - b.timestampMs);
-  cachedAllAlerts = alerts;
-  return cachedAllAlerts;
+
+  // Only cache when we have real data
+  if (flights.length > 0) {
+    cachedAllAlerts = alerts;
+  }
+
+  return alerts;
 }
 
 /**

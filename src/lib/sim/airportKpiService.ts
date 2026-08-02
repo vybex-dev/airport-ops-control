@@ -1,8 +1,4 @@
-import flightsData from '@/data/parsed/flights.json';
-import gateEventsData from '@/data/parsed/gate_events.json';
-import baggageData from '@/data/parsed/baggage.json';
-import securityData from '@/data/parsed/security_screening.json';
-import maintenanceData from '@/data/parsed/maintenance_logs.json';
+import { getDatasetSync } from '@/lib/sim/dataLoader';
 import { parseSimTimestamp } from '@/lib/flights/flightDataService';
 import type { Flight, Bag, SecurityScreening, MaintenanceLog, GateEvent } from '@/data/types';
 
@@ -49,14 +45,14 @@ export interface AirportKPIs {
   };
 }
 
-const allFlights = flightsData as Flight[];
-const allGateEvents = gateEventsData as GateEvent[];
-const allBaggage = baggageData as Bag[];
-const allSecurity = securityData as SecurityScreening[];
-const allMaintenance = maintenanceData as MaintenanceLog[];
-
 export function computeAirportKPIs(currentTimeMs: number): AirportKPIs {
-  // 1. FLIGHTS KPI COMPUTATION
+  const allFlights = getDatasetSync<Flight>('flights');
+  const allGateEvents = getDatasetSync<GateEvent>('gate_events');
+  const allBaggage = getDatasetSync<Bag>('baggage');
+  const allSecurity = getDatasetSync<SecurityScreening>('security_screening');
+  const allMaintenance = getDatasetSync<MaintenanceLog>('maintenance_logs');
+
+  // ─── 1. FLIGHTS KPI COMPUTATION ───────────────────────────────────────────
   let activeAirborne = 0;
   let departed = 0;
   let upcoming = 0;
@@ -95,7 +91,7 @@ export function computeAirportKPIs(currentTimeMs: number): AirportKPIs {
   const otpPct = evaluatedCount > 0 ? Number(((onTimeCount / evaluatedCount) * 100).toFixed(1)) : 88.5;
   const avgDelayMins = delayed > 0 ? Math.round(totalDelayMinsSum / delayed) : 0;
 
-  // 2. GATES KPI COMPUTATION
+  // ─── 2. GATES KPI COMPUTATION ─────────────────────────────────────────────
   const occupiedGatesSet = new Set<string>();
   let activeTurnarounds = 0;
 
@@ -131,7 +127,7 @@ export function computeAirportKPIs(currentTimeMs: number): AirportKPIs {
     }
   }
 
-  // 3. BAGGAGE KPI COMPUTATION
+  // ─── 3. BAGGAGE KPI COMPUTATION ───────────────────────────────────────────
   let totalProcessed = 0;
   let misroutedCount = 0;
 
@@ -139,7 +135,7 @@ export function computeAirportKPIs(currentTimeMs: number): AirportKPIs {
     const tsMs = parseSimTimestamp(b.checkInTimestamp);
     if (tsMs <= currentTimeMs) {
       totalProcessed++;
-      if (b.handlingStatus as string === 'Delayed') {
+      if ((b.handlingStatus as string) === 'Delayed') {
         misroutedCount++;
       }
     }
@@ -147,7 +143,7 @@ export function computeAirportKPIs(currentTimeMs: number): AirportKPIs {
 
   const slaSuccessPct = totalProcessed > 0 ? Number((((totalProcessed - misroutedCount) / totalProcessed) * 100).toFixed(1)) : 99.2;
 
-  // 4. SECURITY KPI COMPUTATION
+  // ─── 4. SECURITY KPI COMPUTATION ──────────────────────────────────────────
   let totalScreened = 0;
   let totalProcessingTime = 0;
 
@@ -164,7 +160,7 @@ export function computeAirportKPIs(currentTimeMs: number): AirportKPIs {
   const avgWaitMins = Number(((avgWaitSecs * (1.2 + (activeAirborne % 5) * 0.1)) / 10).toFixed(1));
   const backlogRisk: 'LOW' | 'MODERATE' | 'HIGH' | 'CRITICAL' = avgWaitMins > 10 ? 'HIGH' : avgWaitMins > 7 ? 'MODERATE' : 'LOW';
 
-  // 5. MAINTENANCE KPI COMPUTATION
+  // ─── 5. MAINTENANCE KPI COMPUTATION ───────────────────────────────────────
   let openWorkOrders = 0;
   let criticalDefects = 0;
 
@@ -180,7 +176,7 @@ export function computeAirportKPIs(currentTimeMs: number): AirportKPIs {
     }
   }
 
-  // OVERVIEW SYSTEM STATUS DETERMINATION
+  // ─── OVERVIEW SYSTEM STATUS DETERMINATION ─────────────────────────────────
   let level: 'NOMINAL' | 'ELEVATED' | 'WARNING' | 'CRITICAL' = 'NOMINAL';
   let label = 'SYSTEM OPERATIONAL — DEFCON 4';
   let description = 'All 8 sub-systems operating within standard parameters.';

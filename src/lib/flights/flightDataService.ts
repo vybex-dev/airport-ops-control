@@ -1,9 +1,4 @@
-import flightsData from '@/data/parsed/flights.json';
-import passengersData from '@/data/parsed/passengers.json';
-import baggageData from '@/data/parsed/baggage.json';
-import gateEventsData from '@/data/parsed/gate_events.json';
-import maintenanceData from '@/data/parsed/maintenance_logs.json';
-
+import { getDatasetSync, onAllDataReady } from '@/lib/sim/dataLoader';
 import type { Flight, Passenger, Bag, GateEvent, MaintenanceLog } from '@/data/types';
 import type { SimAlert } from '@/lib/sim/simTypes';
 
@@ -65,46 +60,51 @@ export function parseSimTimestamp(tsStr: string): number {
 
 // ----------------------------------------------------
 // PRE-INDEXED LOOKUP MAPS FOR O(1) CROSS-DATASET JOINS
+// Built lazily on first use; rebuilt when data reloads.
 // ----------------------------------------------------
-const allFlights: Flight[] = flightsData as Flight[];
-const passengersByFlightMap = new Map<string, Passenger[]>();
-const baggageByFlightMap = new Map<string, Bag[]>();
-const gateEventsByFlightMap = new Map<string, GateEvent[]>();
-const maintenanceByFlightMap = new Map<string, MaintenanceLog[]>();
+let passengersByFlightMap: Map<string, Passenger[]> | null = null;
+let baggageByFlightMap: Map<string, Bag[]> | null = null;
+let gateEventsByFlightMap: Map<string, GateEvent[]> | null = null;
+let maintenanceByFlightMap: Map<string, MaintenanceLog[]> | null = null;
 
-// Initialize indices once
-(() => {
-  for (const p of passengersData as Passenger[]) {
-    if (!passengersByFlightMap.has(p.flightId)) {
-      passengersByFlightMap.set(p.flightId, []);
-    }
+function buildIndices() {
+  const passengersData = getDatasetSync<Passenger>('passengers');
+  const baggageData = getDatasetSync<Bag>('baggage');
+  const gateEventsData = getDatasetSync<GateEvent>('gate_events');
+  const maintenanceData = getDatasetSync<MaintenanceLog>('maintenance_logs');
+
+  passengersByFlightMap = new Map();
+  baggageByFlightMap = new Map();
+  gateEventsByFlightMap = new Map();
+  maintenanceByFlightMap = new Map();
+
+  for (const p of passengersData) {
+    if (!passengersByFlightMap.has(p.flightId)) passengersByFlightMap.set(p.flightId, []);
     passengersByFlightMap.get(p.flightId)!.push(p);
   }
-
-  for (const b of baggageData as Bag[]) {
-    if (!baggageByFlightMap.has(b.flightId)) {
-      baggageByFlightMap.set(b.flightId, []);
-    }
+  for (const b of baggageData) {
+    if (!baggageByFlightMap.has(b.flightId)) baggageByFlightMap.set(b.flightId, []);
     baggageByFlightMap.get(b.flightId)!.push(b);
   }
-
-  for (const g of gateEventsData as GateEvent[]) {
-    if (!gateEventsByFlightMap.has(g.flightId)) {
-      gateEventsByFlightMap.set(g.flightId, []);
-    }
+  for (const g of gateEventsData) {
+    if (!gateEventsByFlightMap.has(g.flightId)) gateEventsByFlightMap.set(g.flightId, []);
     gateEventsByFlightMap.get(g.flightId)!.push(g);
   }
-
-  for (const m of maintenanceData as MaintenanceLog[]) {
-    if (!maintenanceByFlightMap.has(m.flightId)) {
-      maintenanceByFlightMap.set(m.flightId, []);
-    }
+  for (const m of maintenanceData) {
+    if (!maintenanceByFlightMap.has(m.flightId)) maintenanceByFlightMap.set(m.flightId, []);
     maintenanceByFlightMap.get(m.flightId)!.push(m);
   }
-})();
+}
+
+/** Rebuild indices when all data is ready, then keep them current. */
+onAllDataReady(buildIndices);
+
+function ensureIndices() {
+  if (!passengersByFlightMap) buildIndices();
+}
 
 export function getAllFlights(): Flight[] {
-  return allFlights;
+  return getDatasetSync<Flight>('flights');
 }
 
 /**
@@ -112,7 +112,7 @@ export function getAllFlights(): Flight[] {
  */
 export function getUniqueAirlines(): string[] {
   const set = new Set<string>();
-  for (const f of allFlights) {
+  for (const f of getAllFlights()) {
     if (f.airlineName) set.add(f.airlineName);
   }
   return Array.from(set).sort();
@@ -123,7 +123,7 @@ export function getUniqueAirlines(): string[] {
  */
 export function getUniqueDestinations(): string[] {
   const set = new Set<string>();
-  for (const f of allFlights) {
+  for (const f of getAllFlights()) {
     if (f.destination) set.add(f.destination);
   }
   return Array.from(set).sort();
@@ -206,11 +206,12 @@ export function calculateLiveFlightState(
  * Get joined cross-dataset record for a flight
  */
 export function getJoinedFlightData(flight: Flight, activeAlerts: SimAlert[] = [], currentTimeMs: number = 0): JoinedFlightData {
+  ensureIndices();
   const flightId = flight.flightId;
-  const passengers = passengersByFlightMap.get(flightId) ?? [];
-  const baggage = baggageByFlightMap.get(flightId) ?? [];
-  const gateEvents = gateEventsByFlightMap.get(flightId) ?? [];
-  const maintenanceLogs = maintenanceByFlightMap.get(flightId) ?? [];
+  const passengers = passengersByFlightMap?.get(flightId) ?? [];
+  const baggage = baggageByFlightMap?.get(flightId) ?? [];
+  const gateEvents = gateEventsByFlightMap?.get(flightId) ?? [];
+  const maintenanceLogs = maintenanceByFlightMap?.get(flightId) ?? [];
 
   // Alerts linked to this flight
   const flightAlerts = activeAlerts.filter(
