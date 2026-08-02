@@ -1,0 +1,96 @@
+@import "tailwindcss";
+
+/*
+ * ============================================================
+ * DESIGN TOKENS — Airport Operations Control Center
+ * ============================================================
+ * Grounded in three real references, not generic dashboard
+ * conventions: split-flap/LED FIDS departure boards, ATC radar
+ * scope color/contrast conventions, and NOC video-wall density.
+ *
+ * All four status colors are verified WCAG AA (>=4.5:1) against
+ * every surface tone below — see progress.md for the computed
+ * ratios. Do not swap these for "softer" pastel equivalents;
+ * desaturating status colors is exactly what kills legibility on
+ * a real ops board.
+ *
+ * Tailwind v4 CSS-first config: tokens declared in @theme become
+ * both CSS custom properties (var(--color-surface-0)) AND
+ * Tailwind utility classes (bg-surface-0, text-status-delayed,
+ * etc.) automatically — no tailwind.config.js needed.
+ * ============================================================
+ */
+@theme {
+  /* --- Surfaces: deep blue-black, not neutral/true black --- */
+  --color-surface-0: #0a0e14; /* app background */
+  --color-surface-1: #111826; /* panel/card background */
+  --color-surface-2: #1a2333; /* elevated surface: modals, active row */
+  --color-line: #2a3547; /* hairline borders/dividers */
+
+  /* --- Ink --- */
+  --color-ink-primary: #e8ecf2; /* off-white, reduces glare vs pure white */
+  --color-ink-muted: #8b96a8; /* secondary/label text */
+
+  /* --- Status: unambiguous, radar/FIDS-conventional --- */
+  --color-status-ontime: #2fd97c; /* phosphor / radar-sweep green */
+  --color-status-boarding: #3ba7ff; /* signal blue */
+  --color-status-delayed: #f5a623; /* split-flap amber */
+  --color-status-alert: #ff4d4f; /* reserved for genuine alert states only */
+
+  /* --- The one electric accent: live/active-scan indicator only --- */
+  --color-accent-signal: #00e5ff;
+
+  /* --- Type --- */
+  --font-display: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-data: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  /* --- Spacing scale: tight, 4px-based, denser than Tailwind default --- */
+  --spacing-4xs: 2px;
+  --spacing-3xs: 4px;
+  --spacing-2xs: 8px;
+  --spacing-xs: 12px;
+  --spacing-sm: 16px;
+  --spacing-md: 24px;
+  --spacing-lg: 32px;
+  --spacing-xl: 48px;
+  --spacing-2xl: 64px;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-surface-0);
+  color: var(--color-ink-primary);
+  font-family: var(--font-display);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Numeric/code data — flight numbers, timestamps, gates, counts —
+   always renders in the tabular-figure mono face. This is the
+   instrument-panel signature: every column of numbers aligns. */
+.font-data,
+.tabular-data {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Respect reduced-motion globally; individual components (e.g. the
+   radar-sweep signature element) also provide an explicit static
+   fallback rather than relying on this alone. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
