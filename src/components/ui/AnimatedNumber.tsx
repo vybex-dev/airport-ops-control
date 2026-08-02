@@ -13,12 +13,14 @@ export interface AnimatedNumberProps {
  * framer-motion here put the whole vendor-motion chunk back on the
  * critical path even after AlertsPanelDrawer was lazy-loaded elsewhere.
  *
- * A plain CSS keyframe (`.animate-value-pulse`, see index.css) restarted
- * via a remount key gives the same brief scale+opacity pulse on value
- * change, handled by the browser compositor with no JS on the animation
- * frame. prefers-reduced-motion is handled globally in index.css
- * (animation-duration: 0.01ms !important), so no per-component check
- * is needed here.
+ * IMPORTANT: this does NOT remount the DOM node on value change (no
+ * `key={...}` swap). The sim clock ticks every 100ms and KPI values can
+ * change roughly once a second, so a key-based remount would tear down
+ * and rebuild this node repeatedly during normal operation — real DOM
+ * churn, not just a visual animation, and enough to show up as extra
+ * paint/layout work if a Lighthouse measurement window happens to land
+ * on a value change. Instead we toggle a CSS class on the same persistent
+ * node, forcing a reflow so the keyframe restarts cleanly each time.
  */
 export const AnimatedNumber: React.FC<AnimatedNumberProps> = ({
   value,
@@ -26,28 +28,41 @@ export const AnimatedNumber: React.FC<AnimatedNumberProps> = ({
   suffix = "",
   className = "",
 }) => {
-  const [displayValue, setDisplayValue] = useState(value);
-  const [pulseKey, setPulseKey] = useState(0);
+  const [isPulsing, setIsPulsing] = useState(false);
+  const spanRef = useRef<HTMLSpanElement>(null);
   const isFirstRender = useRef(true);
+  const prevValueRef = useRef(value);
 
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
+      prevValueRef.current = value;
       return;
     }
-    if (value !== displayValue) {
-      setDisplayValue(value);
-      setPulseKey((k) => k + 1);
+    if (value === prevValueRef.current) return;
+    prevValueRef.current = value;
+
+    // Restart the CSS animation on the same node: toggle the class off,
+    // force a synchronous reflow, then toggle it back on. No unmount.
+    setIsPulsing(false);
+    const el = spanRef.current;
+    if (el) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+      void el.offsetWidth; // force reflow so the next class add re-triggers the keyframe
     }
-  }, [value, displayValue]);
+    setIsPulsing(true);
+  }, [value]);
 
   return (
     <span
-      key={pulseKey}
-      className={`inline-block will-change-transform animate-value-pulse ${className}`}
+      ref={spanRef}
+      className={`inline-block will-change-transform ${isPulsing ? "animate-value-pulse" : ""} ${className}`}
+      onAnimationEnd={(e) => {
+        if (e.target === e.currentTarget) setIsPulsing(false);
+      }}
     >
       {prefix}
-      {displayValue}
+      {value}
       {suffix}
     </span>
   );
