@@ -1,5 +1,4 @@
-import React from 'react';
-import { motion, useReducedMotion, AnimatePresence } from 'framer-motion';
+import React from "react";
 
 export interface AnimatedStatusFlipProps {
   statusKey: string;
@@ -7,29 +6,26 @@ export interface AnimatedStatusFlipProps {
   className?: string;
 }
 
+/**
+ * CSS-only replacement for the previous framer-motion (AnimatePresence)
+ * implementation. Framer Motion's exit-then-enter crossfade needs two DOM
+ * nodes mounted briefly at once — not worth the dependency weight for a
+ * status badge flip. This does a fade+slide-in on key change instead
+ * (`.animate-status-flip-in`, see index.css), which reads almost
+ * identically at the 0.2s duration used here.
+ *
+ * prefers-reduced-motion is handled globally in index.css
+ * (animation-duration: 0.01ms !important), so no per-component check
+ * is needed here.
+ */
 export const AnimatedStatusFlip: React.FC<AnimatedStatusFlipProps> = ({
   statusKey,
   children,
-  className = '',
+  className = "",
 }) => {
-  const shouldReduceMotion = useReducedMotion();
-
-  if (shouldReduceMotion) {
-    return <div className={className}>{children}</div>;
-  }
-
   return (
-    <AnimatePresence mode="wait" initial={false}>
-      <motion.div
-        key={statusKey}
-        initial={{ opacity: 0, y: -4, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 4, scale: 0.98 }}
-        transition={{ duration: 0.2, ease: 'easeOut' }}
-        className={className}
-      >
-        {children}
-      </motion.div>
-    </AnimatePresence>
+    <div key={statusKey} className={`animate-status-flip-in ${className}`}>
+      {children}
+    </div>
   );
 };

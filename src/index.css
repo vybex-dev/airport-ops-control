@@ -41,8 +41,9 @@
   --color-accent-signal: #00e5ff;
 
   /* --- Type --- */
-  --font-display: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --font-data: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  --font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-data:
+    "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
 
   /* --- Spacing scale: tight, 4px-based, denser than Tailwind default --- */
   --spacing-4xs: 2px;
@@ -105,3 +106,45 @@ body {
   }
 }
 
+/* ------------------------------------------------------------
+   AnimatedNumber / AnimatedStatusFlip — CSS-only replacements
+   for what was previously framer-motion. These render on every
+   KPI card on first paint, so keeping them dependency-free keeps
+   framer-motion (vendor-motion chunk) fully off the initial
+   bundle. The prefers-reduced-motion block above already
+   neutralizes both animations globally via !important, so these
+   components don't need their own JS-level check.
+   ------------------------------------------------------------ */
+@keyframes value-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  40% {
+    transform: scale(1.06);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-value-pulse {
+  animation: value-pulse 0.25s ease-out;
+}
+
+@keyframes status-flip-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-status-flip-in {
+  animation: status-flip-in 0.2s ease-out;
+}

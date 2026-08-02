@@ -1,5 +1,4 @@
-import React, { useEffect, useState } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import React, { useEffect, useRef, useState } from "react";
 
 export interface AnimatedNumberProps {
   value: number | string;
@@ -8,47 +7,48 @@ export interface AnimatedNumberProps {
   className?: string;
 }
 
+/**
+ * CSS-only replacement for the previous framer-motion implementation.
+ * Renders on first paint for every KPI card on Overview, so pulling in
+ * framer-motion here put the whole vendor-motion chunk back on the
+ * critical path even after AlertsPanelDrawer was lazy-loaded elsewhere.
+ *
+ * A plain CSS keyframe (`.animate-value-pulse`, see index.css) restarted
+ * via a remount key gives the same brief scale+opacity pulse on value
+ * change, handled by the browser compositor with no JS on the animation
+ * frame. prefers-reduced-motion is handled globally in index.css
+ * (animation-duration: 0.01ms !important), so no per-component check
+ * is needed here.
+ */
 export const AnimatedNumber: React.FC<AnimatedNumberProps> = ({
   value,
-  prefix = '',
-  suffix = '',
-  className = '',
+  prefix = "",
+  suffix = "",
+  className = "",
 }) => {
-  const shouldReduceMotion = useReducedMotion();
   const [displayValue, setDisplayValue] = useState(value);
-  const [isChanging, setIsChanging] = useState(false);
+  const [pulseKey, setPulseKey] = useState(0);
+  const isFirstRender = useRef(true);
 
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
     if (value !== displayValue) {
-      setIsChanging(true);
       setDisplayValue(value);
-      const timer = setTimeout(() => setIsChanging(false), 300);
-      return () => clearTimeout(timer);
+      setPulseKey((k) => k + 1);
     }
   }, [value, displayValue]);
 
-  if (shouldReduceMotion) {
-    return (
-      <span className={className}>
-        {prefix}
-        {value}
-        {suffix}
-      </span>
-    );
-  }
-
   return (
-    <motion.span
-      className={`inline-block ${className}`}
-      animate={{
-        scale: isChanging ? [1, 1.06, 1] : 1,
-        opacity: isChanging ? [1, 0.8, 1] : 1,
-      }}
-      transition={{ duration: 0.25, ease: 'easeOut' }}
+    <span
+      key={pulseKey}
+      className={`inline-block will-change-transform animate-value-pulse ${className}`}
     >
       {prefix}
-      {value}
+      {displayValue}
       {suffix}
-    </motion.span>
+    </span>
   );
 };
