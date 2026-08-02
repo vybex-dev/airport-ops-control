@@ -43,7 +43,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
         aria-label="Global operator search"
         className={clsx(
           'w-full bg-surface-0/90 text-ink-primary placeholder:text-ink-muted/70 text-xs font-display',
-          'pl-9 pr-14 py-2xs rounded-sm border border-line transition-all duration-150',
+          'pl-9 pr-8 sm:pr-14 py-2xs rounded-sm border border-line transition-all duration-150',
           'focus:outline-none focus:border-accent-signal focus:ring-1 focus:ring-accent-signal/50 focus:bg-surface-1'
         )}
         {...props}

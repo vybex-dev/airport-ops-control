@@ -422,17 +422,15 @@ export const AlertsPanelDrawer: React.FC<AlertsPanelProps> = ({ isEmbedded = fal
           />
 
           {/* Slide-out Drawer */}
-          <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
-            <motion.div
-              initial={shouldReduceMotion ? { opacity: 0 } : { x: '100%' }}
-              animate={shouldReduceMotion ? { opacity: 1 } : { x: 0 }}
-              exit={shouldReduceMotion ? { opacity: 0 } : { x: '100%' }}
-              transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-              className="w-screen max-w-md lg:max-w-xl shadow-2xl border-l border-line"
-            >
-              {contentMarkup}
-            </motion.div>
-          </div>
+          <motion.div
+            initial={shouldReduceMotion ? { opacity: 0 } : { x: '100%' }}
+            animate={shouldReduceMotion ? { opacity: 1 } : { x: 0 }}
+            exit={shouldReduceMotion ? { opacity: 0 } : { x: '100%' }}
+            transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+            className="fixed inset-y-0 right-0 z-50 w-full max-w-md lg:max-w-xl shadow-2xl border-l border-line bg-surface-1"
+          >
+            {contentMarkup}
+          </motion.div>
         </div>
       )}
     </AnimatePresence>

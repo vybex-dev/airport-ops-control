@@ -121,11 +121,10 @@ export const TopStatusBar: React.FC<TopStatusBarProps> = ({
             </div>
           </button>
 
-          {/* Global Search Input */}
           <SearchInput
             value={searchQuery}
             onChange={setSearchQuery}
-            className="w-24 focus-within:w-40 sm:w-44 sm:focus-within:w-56 md:w-56 md:focus-within:w-72 lg:w-72 lg:focus-within:w-80"
+            className="w-36 focus-within:w-48 sm:w-48 sm:focus-within:w-60 md:w-60 md:focus-within:w-72 lg:w-72 lg:focus-within:w-80 shrink-0"
           />
         </div>
       </div>
