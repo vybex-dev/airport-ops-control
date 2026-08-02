@@ -20,25 +20,25 @@ export const GateConflictBanner: React.FC<GateConflictBannerProps> = ({
 
   if (gateConflictAlerts.length === 0) {
     return (
-      <div className="p-sm rounded-md bg-status-ontime/10 border border-status-ontime/30 flex items-center justify-between font-data text-xs">
-        <div className="flex items-center gap-xs text-status-ontime">
-          <CheckCircle2 className="h-4 w-4" />
+      <div className="p-sm rounded-md bg-status-ontime/10 border border-status-ontime/30 flex items-center justify-between gap-xs flex-wrap font-data text-xs">
+        <div className="flex items-center gap-xs text-status-ontime min-w-0 flex-wrap">
+          <CheckCircle2 className="h-4 w-4 shrink-0" />
           <span className="font-bold">CONCOURSE OPERATIONAL SAFETY CLEAR:</span>
           <span>Zero gate turnaround conflicts active in Terminal 3.</span>
         </div>
-        <span className="text-ink-muted text-[11px]">45m Buffer Enforced</span>
+        <span className="text-ink-muted text-[11px] shrink-0">45m Buffer Enforced</span>
       </div>
     );
   }
 
   return (
     <div className="p-sm rounded-md bg-status-alert/10 border border-status-alert/40 space-y-xs font-data">
-      <div className="flex items-center justify-between border-b border-status-alert/20 pb-xs">
-        <div className="flex items-center gap-xs text-status-alert font-bold text-sm">
-          <AlertTriangle className="h-5 w-5 animate-pulse" />
+      <div className="flex items-center justify-between gap-xs flex-wrap border-b border-status-alert/20 pb-xs">
+        <div className="flex items-center gap-xs text-status-alert font-bold text-sm min-w-0">
+          <AlertTriangle className="h-5 w-5 animate-pulse shrink-0" />
           <span>CONCOURSE GATE CONFLICT ALERTS ({gateConflictAlerts.length})</span>
         </div>
-        <span className="text-xs text-status-alert uppercase font-bold tracking-wider">
+        <span className="text-xs text-status-alert uppercase font-bold tracking-wider shrink-0">
           RULE_GATE_CONFLICT TRIGGERED
         </span>
       </div>
