@@ -1,13 +1,17 @@
-import React, { useState } from 'react';
-import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Outlet } from 'react-router-dom';
-import { TopStatusBar } from './TopStatusBar';
-import { PrimaryNav } from './PrimaryNav';
-import { SimDebugPanel } from '../sim/SimDebugPanel';
-import { AlertsPanelDrawer } from '../alerts/AlertsPanelDrawer';
-import { GlobalFlightDrawer } from '../common/GlobalFlightDrawer';
-import { ShieldCheck, Activity, Terminal } from 'lucide-react';
+import React, { useState, lazy, Suspense } from "react";
+import { Outlet } from "react-router-dom";
+import { TopStatusBar } from "./TopStatusBar";
+import { PrimaryNav } from "./PrimaryNav";
+import { SimDebugPanel } from "../sim/SimDebugPanel";
+import { AlertsPanelDrawer } from "../alerts/AlertsPanelDrawer";
+import { GlobalFlightDrawer } from "../common/GlobalFlightDrawer";
+import { ShieldCheck, Activity, Terminal } from "lucide-react";
+
+// Only fetched once someone actually opens the mobile nav — keeps the
+// framer-motion (vendor-motion) chunk off the initial render's critical path.
+const MobileNavDrawer = lazy(() =>
+  import("./MobileNavDrawer").then((m) => ({ default: m.MobileNavDrawer })),
+);
 
 export interface AppLayoutProps {
   children?: React.ReactNode;
@@ -15,13 +19,25 @@ export interface AppLayoutProps {
 
 export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+  // Tracks whether the drawer has ever been opened. Once true, MobileNavDrawer
+  // stays mounted (visibility controlled via isOpen) so AnimatePresence can
+  // still play the exit animation on close.
+  const [hasOpenedMobileNav, setHasOpenedMobileNav] = useState(false);
+
+  const handleToggleMobileNav = () => {
+    setIsMobileNavOpen((prev) => {
+      const next = !prev;
+      if (next) setHasOpenedMobileNav(true);
+      return next;
+    });
+  };
 
   return (
     <div className="min-h-screen bg-surface-0 text-ink-primary flex flex-col font-display selection:bg-accent-signal selection:text-surface-0">
       {/* Persistent Header */}
       <TopStatusBar
         isMobileNavOpen={isMobileNavOpen}
-        onToggleMobileNav={() => setIsMobileNavOpen(!isMobileNavOpen)}
+        onToggleMobileNav={handleToggleMobileNav}
       />
 
       {/* Main Workspace Body */}
@@ -34,42 +50,28 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           <div className="p-xs m-2xs rounded bg-surface-0/60 border border-line text-xs">
             <div className="flex items-center justify-between font-data text-[10px] text-ink-muted mb-1">
               <span className="flex items-center gap-1">
-                <Activity className="h-3 w-3 text-status-ontime" /> SYSTEM METRICS
+                <Activity className="h-3 w-3 text-status-ontime" /> SYSTEM
+                METRICS
               </span>
-              <span className="text-status-ontime font-semibold">99.9% UPTIME</span>
+              <span className="text-status-ontime font-semibold">
+                99.9% UPTIME
+              </span>
             </div>
             <div className="font-data text-[11px] text-ink-muted">
-              DEL-T3 Core Gateway: <span className="text-ink-primary font-medium">ONLINE</span>
+              DEL-T3 Core Gateway:{" "}
+              <span className="text-ink-primary font-medium">ONLINE</span>
             </div>
           </div>
         </aside>
 
-        {/* Mobile Navigation Drawer Overlay */}
-        {createPortal(
-          <AnimatePresence>
-            {isMobileNavOpen && (
-              <div className="fixed inset-0 z-[100] overflow-hidden lg:hidden flex justify-start">
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="absolute inset-0 bg-surface-0/80 backdrop-blur-sm"
-                  onClick={() => setIsMobileNavOpen(false)}
-                />
-                <motion.div
-                  initial={{ x: '-100%' }}
-                  animate={{ x: '0%' }}
-                  exit={{ x: '-100%' }}
-                  transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-                  className="relative z-10 w-72 h-full bg-surface-1 border-r border-line shadow-2xl flex flex-col pt-[53px]"
-                >
-                  <PrimaryNav onItemClick={() => setIsMobileNavOpen(false)} className="flex-1 overflow-y-auto" />
-                </motion.div>
-              </div>
-            )}
-          </AnimatePresence>,
-          document.body
+        {/* Mobile Navigation Drawer Overlay — lazy, only after first toggle */}
+        {hasOpenedMobileNav && (
+          <Suspense fallback={null}>
+            <MobileNavDrawer
+              isOpen={isMobileNavOpen}
+              onClose={() => setIsMobileNavOpen(false)}
+            />
+          </Suspense>
         )}
 
         {/* Main Content Area */}
@@ -96,15 +98,22 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           </div>
           <div className="hidden sm:block text-line">•</div>
           <div className="hidden sm:block">
-            DEL Airport Operations Control Center — Virtual Clock Simulation Active
+            DEL Airport Operations Control Center — Virtual Clock Simulation
+            Active
           </div>
         </div>
 
         <div className="flex items-center gap-md">
           <div className="hidden md:flex items-center gap-2 font-data text-[10px]">
-            <span className="px-1 bg-surface-2 border border-line rounded">⌘K</span> Global Search
+            <span className="px-1 bg-surface-2 border border-line rounded">
+              ⌘K
+            </span>{" "}
+            Global Search
             <span className="text-line">•</span>
-            <span className="px-1 bg-surface-2 border border-line rounded">Tab</span> Focus Mode
+            <span className="px-1 bg-surface-2 border border-line rounded">
+              Tab
+            </span>{" "}
+            Focus Mode
           </div>
           <div className="flex items-center gap-1.5 text-accent-signal">
             <Terminal className="h-3 w-3" />
