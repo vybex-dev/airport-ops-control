@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Outlet } from 'react-router-dom';
 import { TopStatusBar } from './TopStatusBar';
 import { PrimaryNav } from './PrimaryNav';
@@ -43,18 +45,31 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         </aside>
 
         {/* Mobile Navigation Drawer Overlay */}
-        {isMobileNavOpen && (
-          <div
-            className="fixed inset-0 z-40 bg-surface-0/80 backdrop-blur-sm lg:hidden"
-            onClick={() => setIsMobileNavOpen(false)}
-          >
-            <div
-              className="w-72 h-full bg-surface-1 border-r border-line shadow-2xl flex flex-col pt-[53px]"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <PrimaryNav onItemClick={() => setIsMobileNavOpen(false)} className="flex-1 overflow-y-auto" />
-            </div>
-          </div>
+        {createPortal(
+          <AnimatePresence>
+            {isMobileNavOpen && (
+              <div className="fixed inset-0 z-[100] overflow-hidden lg:hidden flex justify-start">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="absolute inset-0 bg-surface-0/80 backdrop-blur-sm"
+                  onClick={() => setIsMobileNavOpen(false)}
+                />
+                <motion.div
+                  initial={{ x: '-100%' }}
+                  animate={{ x: '0%' }}
+                  exit={{ x: '-100%' }}
+                  transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+                  className="relative z-10 w-72 h-full bg-surface-1 border-r border-line shadow-2xl flex flex-col pt-[53px]"
+                >
+                  <PrimaryNav onItemClick={() => setIsMobileNavOpen(false)} className="flex-1 overflow-y-auto" />
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>,
+          document.body
         )}
 
         {/* Main Content Area */}

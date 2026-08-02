@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useAlerts, useSimClock } from '@/store/useSimEngineHooks';
@@ -407,32 +408,33 @@ export const AlertsPanelDrawer: React.FC<AlertsPanelProps> = ({ isEmbedded = fal
   }
 
   // Slide-out Drawer Overlay
-  return (
+  return createPortal(
     <AnimatePresence>
       {isAlertsDrawerOpen && (
-        <div className="fixed inset-0 z-50 overflow-hidden">
+        <div className="fixed inset-0 z-[100] overflow-hidden flex justify-end">
           {/* Backdrop */}
           <motion.div
-            initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0 }}
+            initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0 }}
+            exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-surface-0/80 backdrop-blur-sm"
+            className="absolute inset-0 bg-surface-0/80 backdrop-blur-sm"
             onClick={closeAlertsDrawer}
           />
 
           {/* Slide-out Drawer */}
           <motion.div
             initial={shouldReduceMotion ? { opacity: 0 } : { x: '100%' }}
-            animate={shouldReduceMotion ? { opacity: 1 } : { x: 0 }}
+            animate={shouldReduceMotion ? { opacity: 1 } : { x: '0%' }}
             exit={shouldReduceMotion ? { opacity: 0 } : { x: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-            className="fixed inset-y-0 right-0 z-50 w-full max-w-md lg:max-w-xl shadow-2xl border-l border-line bg-surface-1"
+            className="relative z-10 w-full max-w-[560px] lg:max-w-[680px] h-full shadow-2xl border-l border-line bg-surface-1 flex flex-col"
           >
             {contentMarkup}
           </motion.div>
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };

@@ -32,7 +32,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
   }, [shortcutKey]);
 
   return (
-    <div className={clsx('relative flex items-center max-w-md transition-all duration-300', className || 'w-full')}>
+    <div className={clsx('relative flex items-center max-w-[420px] transition-all duration-300', className || 'w-full')}>
       <Search className="absolute left-xs h-4 w-4 text-ink-muted pointer-events-none shrink-0" />
       <input
         ref={inputRef}

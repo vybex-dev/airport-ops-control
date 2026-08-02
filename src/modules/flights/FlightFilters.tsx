@@ -50,7 +50,7 @@ export const FlightFilters: React.FC<FlightFiltersProps> = ({
     <div className="space-y-xs bg-surface-1 p-sm rounded-md border border-line">
       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-sm">
         {/* Debounced Search Bar */}
-        <div className="flex-1 max-w-xl">
+        <div className="flex-1 max-w-[480px]">
           <SearchInput
             value={searchTerm}
             onChange={(val) => setSearchTerm(val)}

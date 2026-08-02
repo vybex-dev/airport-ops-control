@@ -1,4 +1,6 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import type { DynamicBagState } from '@/lib/baggage/baggageDataService';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Luggage, X, Plane, User, AlertTriangle, Scale, ShieldCheck } from 'lucide-react';
@@ -15,13 +17,58 @@ export const BagDetailDrawer: React.FC<BagDetailDrawerProps> = ({
   onClose,
   onOpenFlightDrawer,
 }) => {
-  if (!bagState) return null;
+  const shouldReduceMotion = useReducedMotion();
 
+  return createPortal(
+    <AnimatePresence>
+      {bagState && (
+        <BagDetailDrawerContent
+          bagState={bagState}
+          onClose={onClose}
+          onOpenFlightDrawer={onOpenFlightDrawer}
+          shouldReduceMotion={shouldReduceMotion}
+        />
+      )}
+    </AnimatePresence>,
+    document.body
+  );
+};
+
+interface BagDetailDrawerContentProps {
+  bagState: DynamicBagState;
+  onClose: () => void;
+  onOpenFlightDrawer?: (flightId: string) => void;
+  shouldReduceMotion: boolean | null;
+}
+
+const BagDetailDrawerContent: React.FC<BagDetailDrawerContentProps> = ({
+  bagState,
+  onClose,
+  onOpenFlightDrawer,
+  shouldReduceMotion,
+}) => {
   const { bag, flight, statusLabel, badgeVariant, alert } = bagState;
 
   return (
-    <div className="fixed inset-0 bg-surface-0/80 backdrop-blur-xs z-50 flex justify-end transition-opacity">
-      <div className="w-full max-w-md bg-surface-1 border-l border-line h-full flex flex-col shadow-2xl font-data">
+    <div className="fixed inset-0 z-[100] overflow-hidden flex justify-end">
+      {/* Backdrop */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="absolute inset-0 bg-surface-0/80 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      {/* Drawer Content */}
+      <motion.div
+        initial={shouldReduceMotion ? { opacity: 0 } : { x: '100%' }}
+        animate={shouldReduceMotion ? { opacity: 1 } : { x: '0%' }}
+        exit={shouldReduceMotion ? { opacity: 0 } : { x: '100%' }}
+        transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+        className="relative z-10 w-full max-w-[500px] sm:max-w-[560px] bg-surface-1 border-l border-line h-full flex flex-col shadow-2xl font-data"
+      >
         {/* Drawer Header */}
         <div className="px-md py-sm border-b border-line bg-surface-2/80 flex items-center justify-between">
           <div className="flex items-center gap-xs">
@@ -167,7 +214,7 @@ export const BagDetailDrawer: React.FC<BagDetailDrawerProps> = ({
             </div>
           )}
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };

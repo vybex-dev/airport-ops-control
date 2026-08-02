@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Button } from '@/components/ui/Button';
 import {
@@ -24,12 +26,40 @@ export const FlightDetailDrawer: React.FC<FlightDetailDrawerProps> = ({
   onClose,
   onAcknowledgeAlert,
 }) => {
+  const shouldReduceMotion = useReducedMotion();
+
+  return createPortal(
+    <AnimatePresence>
+      {data && (
+        <FlightDetailDrawerContent
+          data={data}
+          onClose={onClose}
+          onAcknowledgeAlert={onAcknowledgeAlert}
+          shouldReduceMotion={shouldReduceMotion}
+        />
+      )}
+    </AnimatePresence>,
+    document.body
+  );
+};
+
+interface FlightDetailDrawerContentProps {
+  data: JoinedFlightData;
+  onClose: () => void;
+  onAcknowledgeAlert: (alertId: string) => void;
+  shouldReduceMotion: boolean | null;
+}
+
+const FlightDetailDrawerContent: React.FC<FlightDetailDrawerContentProps> = ({
+  data,
+  onClose,
+  onAcknowledgeAlert,
+  shouldReduceMotion,
+}) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'passengers' | 'baggage' | 'gate' | 'maintenance' | 'alerts'>(
     'overview'
   );
   const [passengerSearch, setPassengerSearch] = useState('');
-
-  if (!data) return null;
 
   const { flight, passengers, baggage, gateEvents, maintenanceLogs, alerts, liveState } = data;
 
@@ -44,12 +74,25 @@ export const FlightDetailDrawer: React.FC<FlightDetailDrawerProps> = ({
     : passengers.list;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden flex justify-end bg-surface-0/60 backdrop-blur-xs animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[100] overflow-hidden flex justify-end">
       {/* Backdrop Click to Close */}
-      <div className="absolute inset-0" onClick={onClose} />
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="absolute inset-0 bg-surface-0/80 backdrop-blur-sm"
+        onClick={onClose}
+      />
 
       {/* Slide-over Drawer Panel */}
-      <div className="relative w-full sm:max-w-3xl bg-surface-1 border-l border-line shadow-2xl flex flex-col h-full z-10 overflow-hidden">
+      <motion.div
+        initial={shouldReduceMotion ? { opacity: 0 } : { x: '100%' }}
+        animate={shouldReduceMotion ? { opacity: 1 } : { x: '0%' }}
+        exit={shouldReduceMotion ? { opacity: 0 } : { x: '100%' }}
+        transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+        className="relative z-10 w-full max-w-[720px] lg:max-w-[850px] bg-surface-1 border-l border-line shadow-2xl flex flex-col h-full overflow-hidden"
+      >
         {/* Drawer Header */}
         <div className="p-md border-b border-line bg-surface-2/80 relative">
           <div className="flex items-start justify-between gap-md">
@@ -632,7 +675,7 @@ export const FlightDetailDrawer: React.FC<FlightDetailDrawerProps> = ({
             Close Drawer
           </Button>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };
